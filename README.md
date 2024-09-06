@@ -18,7 +18,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1.0.0
+    - uses: actions/checkout@v4
     - name: Setup helmfile
       uses: mamezou-tech/setup-helmfile@v1.0.0
     - name: Test
