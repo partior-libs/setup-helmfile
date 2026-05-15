@@ -1,107 +1,79 @@
-@mamezou-tech/setup-helmfile
-============================
+# setup-helmfile
+> Install kubectl, Helm, and Helmfile with specified versions and add them to the PATH.
 
-![CI](https://github.com/mamezou-tech/setup-helmfile/workflows/CI/badge.svg)
+## Overview
+This JavaScript (Node.js 12) action installs a pinned set of Kubernetes toolchain components — `kubectl`, `helm`, and `helmfile` — along with optional Helm plugins (`helm-diff`, `helm-s3`, and any additional plugins). Use it at the start of deployment workflows to ensure a reproducible toolchain regardless of what is pre-installed on the runner.
 
-Setup [helmfile](https://github.com/helmfile/helmfile) with Helm and kubectl in GitHub Actions workflow.
-
-> - This action works on Linux.
-> - The AWS version of kubectl will be installed.
-> - Following Helm plugins will be installed
->   - helm-diff
->   - helm-s3
+## Usage
 
 ```yaml
-name: CI
-on: [push]
+name: Deploy with Helmfile
+on:
+  push:
+    branches: [main]
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1.0.0
-    - name: Setup helmfile
-      uses: mamezou-tech/setup-helmfile@v1.0.0
-    - name: Test
-      run: |
-        helmfile --version
-        helm version
-        kubectl version --client
+      - uses: actions/checkout@v4
+
+      - name: Setup Helmfile toolchain
+        uses: partior-libs/setup-helmfile@main
+        with:
+          kubectl-version: "1.27.3"
+          helm-version: "v3.12.0"
+          helmfile-version: "v0.155.0"
+
+      - name: Deploy
+        run: helmfile apply
+        env:
+          KUBECONFIG: ${{ secrets.KUBECONFIG }}
 ```
 
-## Optional Inputs
-- `helmfile-version` : helmfile version. Default `"v0.145.0"`.
-- `helm-version` : Helm version. Default `"v3.7.2"`
-- `kubectl-version` : kubectl version. Default `1.22.9`
-- `kubectl-release-date` : kubectl release date. Default `2022-06-03`
-- `install-kubectl` : Install kubectl. Default `yes`
-- `install-helm` : Install Helm. Default `yes`
-- `install-helm-plugins` : Install Helm plugins. Default `yes`
-- `helm-diff-plugin-version` : Plugin version to install. Default `master`
-- `helm-s3-plugin-version` : Plugin version to install. Default `master`
-- `additional-helm-plugins` : A comma separated list of additional helm plugins to install. Should be a valid argument after `helm plugin install`.
-
-> See "[Installing kubectl - Amazon EKS](https://docs.aws.amazon.com/eks/latest/userguide/install-kubectl.html)" for information how to specify the kubectl version.
-
-Example with optional inputs
+### Minimal setup (use defaults)
 
 ```yaml
-name: CI
-on: [push]
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-    - name: Setup helmfile
-      uses: mamezou-tech/setup-helmfile@v1.0.0
-      with:
-        helmfile-version: "v0.135.0"
+      - name: Setup Helmfile (defaults)
+        uses: partior-libs/setup-helmfile@main
 ```
 
-If you are not particular about the version of kubectl / Helm and you can use the versions pre-installed on GitHub Actions runner, you can specify inputs not to install them.
-
-> Notice: Helm plugins will be installed in this case.
+### With additional Helm plugins
 
 ```yaml
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-    - name: Setup helmfile
-      uses: mamezou-tech/setup-helmfile@v1.0.0
-      with:
-        install-kubectl: no
-        install-helm: no
+      - name: Setup Helmfile with extra plugins
+        uses: partior-libs/setup-helmfile@main
+        with:
+          helm-version: "v3.12.0"
+          helmfile-version: "v0.155.0"
+          additional-helm-plugins: >
+            https://github.com/databus23/helm-diff,
+            https://github.com/hypnoglow/helm-s3
 ```
 
-If you want to install certain plugins other than the default plugins, use `additional-helm-plugins`, which accepts a comma separated list of additional plugins to install, accepting anything that can be passed to `helm plugin install`.
+## Inputs
 
-```yaml
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-    - name: Setup helmfile
-      uses: mamezou-tech/setup-helmfile@v1.0.0
-      with:
-        additional-helm-plugins: https://github.com/aslafy-z/helm-git --version 0.10.0
-```
+| Input | Required | Default | Description |
+|-------|----------|---------|-------------|
+| `kubectl-version` | ❌ | `1.22.9` | kubectl version to install |
+| `kubectl-release-date` | ❌ | `2022-06-03` | Release date used to construct the kubectl download URL |
+| `helm-version` | ❌ | `v3.9.0` | Helm version to install |
+| `helmfile-version` | ❌ | `v0.145.0` | Helmfile version to install |
+| `install-kubectl` | ❌ | `yes` | Whether to install kubectl (`yes`/`no`) |
+| `install-helm` | ❌ | `yes` | Whether to install Helm (`yes`/`no`) |
+| `install-helm-plugins` | ❌ | `yes` | Whether to install built-in Helm plugins (`yes`/`no`) |
+| `helm-diff-plugin-version` | ❌ | `master` | `helm-diff` plugin version or branch |
+| `helm-s3-plugin-version` | ❌ | `master` | `helm-s3` plugin version or branch |
+| `additional-helm-plugins` | ❌ | — | Comma-separated list of additional Helm plugin URLs to install |
 
-If you don't want helm plugins installed, specify `no` for `install-helm-plugins`.
+## Outputs
+This action does not set step outputs. Tools are added to `PATH` as a side effect.
 
-```yaml
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-    - name: Setup helmfile
-      uses: mamezou-tech/setup-helmfile@v1.0.0
-      with:
-        install-helm-plugins: no
-```
+## Prerequisites
+- Linux runner (`ubuntu-latest`) is recommended. macOS support may vary.
+- Internet access is required for downloading binaries from GitHub Releases and the Kubernetes CDN.
 
-### Build action (for maintainer)
-```
-$ npm install
-$ npm run package
-```
-> `dist/index.js` shoud be included in commit.
+## Contributing
+Commit message format: `git commit -m "<TICKET_NUMBER> <COMMIT_MESSAGE>"`
+
+## License
+See [LICENSE](LICENSE). Upstream source: [`mamezou-tech/setup-helmfile`](https://github.com/mamezou-tech/setup-helmfile).
